@@ -15,38 +15,34 @@ sns.set_palette('Set2')
 get_ipython().run_line_magic('matplotlib', 'inline')
 
 #Read the data from the file
-df=pd.read_csv('../data/input_data/BTCUSD.csv')
+endpoint = 'https://min-api.cryptocompare.com/data/histoday'
+res = requests.get(endpoint + '?fsym=BTC&tsym=USD&limit=2000')
+df = pd.DataFrame(json.loads(res.content)['Data'])
+df.time = pd.to_datetime(df.time, unit='s')
+df.time=df.time.dt.strftime('%Y-%m-%d')
+df = df.set_index('time')
 
-#Combine Date and Time into a single column
-df.Date=df.Date.astype(str)
-df.Date=pd.to_datetime(df.Date)
-df.Date=df.Date.astype(str)
-df['datetime']=df.Date+' '+df.Timestamp
-
-df = df[0:10000]
-df=df.sort_values('datetime')
-df = df.set_index('datetime')
-
-split_row = len(df) - int(0.1 * len(df))
+#Combine Data into training and testing set
+split_row = len(df) - int(0.4 * len(df))
 train_data = df.iloc[:split_row]
 test_data = df.iloc[split_row:]
 
-ind=df[9000:10000].index.tolist()
+ind=df[1202:2001].index.tolist()
 
 #plot test data vs train data graph
 fig, ax = plt.subplots(1, figsize=(16, 9))
-ax.plot(train_data['Close'], label='training', linewidth=2)
-ax.plot(test_data['Close'], label='test', linewidth=2)
+ax.plot(train_data['close'], label='training', linewidth=2)
+ax.plot(test_data['close'], label='test', linewidth=2)
 
 ax.set_ylabel('price [USD]', fontsize=14)
 ax.set_title('BTC', fontsize=18)
 ax.legend(loc='best', fontsize=18);
 
 #seperate 'x' axis and 'y' axis for train and test data
-x_train = train_data[['High','Low','Open','Volume']]
-y_train = train_data[['Close']]
-x_test = test_data[['High','Low','Open','Volume']]
-y_test = test_data[['Close']]
+x_train = train_data[['high','low','open','volumefrom','volumeto']]
+y_train = train_data[['close']]
+x_test = test_data[['high','low','open','volumefrom','volumeto']]
+y_test = test_data[['close']]
 
 
 #Scale data to normalize it
